@@ -389,11 +389,14 @@ class DailyDigestConfig(Base):
     """Global daily-digest scheduler settings."""
 
     enabled: bool = False
-    cron: str = "0 9 * * *"  # daily 09:00 in gateway/agents timezone
+    cron: str = "0 9 * * *"  # daily 09:00
+    # IANA timezone for `cron` (e.g. "America/Chicago" for 5pm Central, DST-aware).
+    # Falls back to the agents timezone when unset.
+    timezone: str | None = None
 
     def digest_schedule(self, timezone: str) -> CronSchedule:
         """Build the cron schedule for the daily-digest tick."""
-        return CronSchedule(kind="cron", expr=self.cron, tz=timezone)
+        return CronSchedule(kind="cron", expr=self.cron, tz=self.timezone or timezone)
 
 
 class MeetingClassifierConfig(Base):
@@ -414,6 +417,9 @@ class GithubPollConfig(Base):
 
     enabled: bool = False
     interval_s: int = 300  # 5 minutes
+    # Projects to skip for real-time polling (e.g. ones that only want the daily
+    # digest). Their channels still get the daily digest, just not 5-min posts.
+    exclude_projects: list[str] = Field(default_factory=list)
 
 
 class GatewayConfig(Base):

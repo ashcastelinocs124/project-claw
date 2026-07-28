@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from nanobot.config.schema import Project
+from nanobot.config.schema import DailyDigestConfig, Project
 from nanobot.github_poll.service import GithubPollService, build_repo_channel_map
 
 
@@ -12,14 +12,25 @@ def _proj(name, repos, channel):
     )
 
 
-def test_build_repo_channel_map_skips_channelless():
+def test_build_repo_channel_map_skips_channelless_and_excluded():
     projects = {
         "gc": _proj("gc", ["o/GiesChat"], "C1"),
         "nk": _proj("nk", ["o/x"], ""),  # no channel -> skipped
+        "daily": _proj("daily", ["o/Daily"], "C2"),  # excluded below
     }
-    m = build_repo_channel_map(projects)
+    m = build_repo_channel_map(projects, exclude=["daily"])
     assert m["o/GiesChat"] == ("gc", "C1")
-    assert "o/x" not in m
+    assert "o/x" not in m  # no channel
+    assert "o/Daily" not in m  # excluded from real-time polling
+
+
+def test_daily_digest_schedule_prefers_own_timezone():
+    dd = DailyDigestConfig(enabled=True, cron="0 17 * * *", timezone="America/Chicago")
+    sched = dd.digest_schedule("UTC")  # agents tz is UTC, but digest tz wins
+    assert sched.tz == "America/Chicago"
+    assert sched.expr == "0 17 * * *"
+    # unset -> falls back to the passed agents timezone
+    assert DailyDigestConfig(cron="0 9 * * *").digest_schedule("UTC").tz == "UTC"
 
 
 class _FakeSvc(GithubPollService):

@@ -1260,7 +1260,9 @@ def _run_gateway(
             if _gp_raw
             else None
         )
-        gp_map = build_repo_channel_map(_gp_slack.projects) if _gp_slack else {}
+        gp_map = (
+            build_repo_channel_map(_gp_slack.projects, gp_cfg.exclude_projects) if _gp_slack else {}
+        )
         gp_token = _gp_os.environ.get("GH_TOKEN") or _gp_os.environ.get("GITHUB_TOKEN") or ""
 
         async def _gp_silent(*_a, **_k):

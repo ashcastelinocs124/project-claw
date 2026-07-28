@@ -28,10 +28,18 @@ _GITHUB_API = "https://api.github.com"
 _PER_PAGE = 30  # newest commits fetched per repo per tick (also caps a burst)
 
 
-def build_repo_channel_map(projects: dict[str, Project]) -> dict[str, tuple[str, str]]:
-    """``repo -> (project_name, channel)`` for every project that has a channel."""
+def build_repo_channel_map(
+    projects: dict[str, Project], exclude: list[str] | None = None
+) -> dict[str, tuple[str, str]]:
+    """``repo -> (project_name, channel)`` for every project that has a channel.
+
+    Projects named in ``exclude`` are skipped (they opt out of real-time polling).
+    """
+    excluded = set(exclude or [])
     out: dict[str, tuple[str, str]] = {}
     for name, project in projects.items():
+        if name in excluded:
+            continue
         channel = _channel(project)
         if not channel:
             continue
